@@ -1,0 +1,52 @@
+# 1. 工作流名称
+name: Unzip and Commit Website
+
+# 2. 触发条件
+on:
+  # 当有 .zip 文件被推送到仓库时触发
+  push:
+    paths:
+      - '**.zip'
+  # 允许你从 GitHub 网页手动触发
+  workflow_dispatch:
+
+# 3. 任务定义
+jobs:
+  unzip-job:
+    # 在最新的 Ubuntu 系统上运行
+    runs-on: ubuntu-latest
+
+    # 4. 赋予写入权限
+    permissions:
+      contents: write
+
+    # 5. 执行步骤
+    steps:
+      # 步骤 1: 将仓库代码签出到虚拟机上
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 步骤 2: 查找并解压 .zip 文件
+      - name: Find and Unzip
+        run: |
+          # 查找仓库根目录下的第一个 .zip 文件
+          zip_file=$(ls *.zip 2>/dev/null | head -n 1)
+          
+          # 如果找到了 .zip 文件
+          if [ -n "$zip_file" ]; then
+            echo "找到压缩包: $zip_file"
+            # 解压到当前目录，'-o' 表示覆盖已有文件
+            unzip -o "$zip_file" -d .
+            # 删除原 .zip 文件
+            rm "$zip_file"
+          else
+            echo "没有找到 .zip 文件，跳过解压步骤。"
+          fi
+
+      # 步骤 3: 将更改提交回仓库
+      - name: Commit and Push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "自动解压并清理 .zip 文件"
+          # 可选：指定要提交的文件，默认为所有更改
+          # file_pattern: '你的网站文件夹/*'
